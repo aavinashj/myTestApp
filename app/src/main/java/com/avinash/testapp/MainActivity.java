@@ -6,6 +6,7 @@ import android.os.Bundle;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -29,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     EditText edtCfPassword;
     EditText edtOldPassword;
 
-    private User user;
+    private User mUser;
     private Button btnSave;
 
 
@@ -40,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        user = getIntent().getParcelableExtra("user");
+        mUser = getIntent().getParcelableExtra("user");
 
         edtName = findViewById(R.id.edtName);
         edtEmail = findViewById(R.id.edtEmail);
@@ -59,12 +60,19 @@ public class MainActivity extends AppCompatActivity {
                     user.put("email", edtEmail.getText().toString());
                     user.put("name", edtName.getText().toString());
                     user.put("password", edtPassword.getText().toString());
-                    user.put("createdOn", new Date());
-                    user.put("modifiedOn", new Date());
 
-                    DocumentReference reference = db.collection("emailList").document();
-                    user.put("documentId", reference.getId());
-                    reference.set(user);
+                    DocumentReference reference;
+                    if(mUser!=null)
+                        reference = db.collection("emailList").document(mUser.documentId);
+                    else {
+                        reference = db.collection("emailList").document();
+                        user.put("documentId", reference.getId());
+                        user.put("createdOn", new Date());
+
+                    }
+                    user.put("modifiedOn", new Date());
+                    reference.set(user, SetOptions.merge());
+
                     Snackbar.make(view, "Successfully Saved", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
 
@@ -78,15 +86,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        if(user!=null){
+        if(mUser!=null){
             setViews();
         }
     }
 
     private void setViews() {
         findViewById(R.id.tilOldPassword).setVisibility(View.VISIBLE);
-        edtName.setText(user.getName());
-        edtEmail.setText(user.getName());
+        edtName.setText(mUser.getName());
+        edtEmail.setText(mUser.getEmail());
         btnSave.setText("Update");
     }
 
@@ -130,8 +138,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //if in edit mode check previous password
-        if(user!=null){
-            if(!edtOldPassword.getText().toString().contentEquals(user.password)) {
+        if(mUser!=null){
+            if(!edtOldPassword.getText().toString().contentEquals(mUser.password)) {
                 edtOldPassword.setError("invalid old password");
                 return false;
             }
